@@ -1,0 +1,44 @@
+{
+  "todos": [
+    {
+      "id": 1,
+      "title": "Learn API Testing",
+      "completed": false
+    },
+    {
+      "id": 2,
+      "title": "Practice Postman",
+      "completed": true
+    },
+    {
+      "id": 3,
+      "title": "Setup JSON Server",
+      "completed": true
+    },
+    {
+      "id": 4,
+      "title": "Test JSON Server API via Postman",
+      "completed": false
+    },
+    {
+      "id": 5,
+      "title": "Validate response schema of the created API via JSON Server",
+      "isCompleted": false
+    },
+    {
+      "id": 6,
+      "title": "Cook dinner",
+      "isCompleted": false
+    },
+    {
+      "title": "Wash dishes",
+      "isCompleted": false,
+      "id": 8
+    },
+    {
+      "title": "Create prediction for tomorrow's NBA games",
+      "completed": false,
+      "id": 10
+    }
+  ]
+}
