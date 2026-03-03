@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from "express"
 import jsonServer from "json-server"
-
 // Creates Express app instances
 const app = express()
 const router = jsonServer.router("db.json") // Creates router based on db.json
