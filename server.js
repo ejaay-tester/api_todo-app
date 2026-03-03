@@ -19,33 +19,30 @@ const middlewares = jsonServer.defaults()
 
 // Enables parsing JSON body
 // Without this: req.body will be undefined
-app.use(express.json())
+// app.use(express.json())
+
+// Applies JSON Server default middleware
+app.use(middlewares)
 
 // AUTHENTICATION MIDDLEWARE --> app.use((req,res,next) => {})
 // Custom middleware runs before router
 app.use((req, res, next) => {
-  // Allow GET without token, simulates public read access
-  if (req.method === "GET") {
-    return next()
+  if (req.method !== "GET") {
+    const authHeader = req.headers.authorization // Reads Authorization header
+
+    if (!authHeader || authHeader !== "Bearer mysecrettoken") {
+      // Checks if header is missing OR token is incorrect
+      // If invalid, return 401
+      return res.status(401).json({
+        errorCode: "UNAUTHORIZED",
+        message: "Invalid or missing token",
+      })
+    }
   }
 
-  // Reads Authorization header
-  const authHeader = req.headers.authorization
-
-  // Checks if header is missing or token is incorrect
-  if (!authHeader || authHeader !== "Bearer mysecrettoken") {
-    // If invalid -> return 401
-    return res.status(401).json({
-      errorCode: "UNAUTHORIZED",
-      message: "Invalid or missing token",
-    })
-  }
   // If valid -> proceed to router
   next()
 })
-
-// Applies JSON Server default middleware
-app.use(middlewares)
 
 // Attach JSON Server routes after auth check
 app.use(router)
