@@ -8,6 +8,10 @@ dotenv.config()
 // Creates Express app instances
 const app = express()
 
+console.log("Environment checking...")
+console.log("PORT: ", process.env.PORT)
+console.log("MONGO URI: ", process.env.MONGO_URI)
+
 app.use(express.json())
 
 connectDB()
@@ -31,7 +35,6 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
 
-console.log("MONGO URI: ", process.env.MONGO_URI)
 // Creates router based on db.json
 // const router = jsonServer.router("db.json")
 

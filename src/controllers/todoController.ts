@@ -1,4 +1,4 @@
-import Todo from "../models/Todo"
+import Todo from "../models/TodoSchema"
 import { Request, Response } from "express"
 
 // GET ALL TODO
