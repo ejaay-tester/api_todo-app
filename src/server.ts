@@ -31,6 +31,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
 
+console.log("MONGO URI: ", process.env.MONGO_URI)
 // Creates router based on db.json
 // const router = jsonServer.router("db.json")
 
