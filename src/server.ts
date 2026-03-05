@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express"
+import express from "express"
 import dotenv from "dotenv"
 import { connectDB } from "./config/mongo"
 import todoRoutes from "./routes/todoRoutes"
@@ -11,6 +11,14 @@ const app = express()
 app.use(express.json())
 
 connectDB()
+
+// Add a health check for (/) route
+app.get("/", (req, res) => {
+  res.json({
+    message: "Todo API is running",
+    version: "1.0.0",
+  })
+})
 
 // Attach JSON Server routes after auth check
 app.use("/api", todoRoutes)
