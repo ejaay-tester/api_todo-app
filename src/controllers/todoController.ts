@@ -19,6 +19,21 @@ export const getTodos = async (req: Request, res: Response) => {
   })
 }
 
+// GET SINGLE TODO
+export const getTodo = async (req: Request, res: Response) => {
+  try {
+    const todo = await Todo.findById(req.params.id)
+
+    if (!todo) {
+      return res.status(404).json({ message: "Todo not found!" })
+    }
+
+    res.status(200).json(todo)
+  } catch (error) {
+    res.status(500).json({ message: "Invalid ID format or Server Error" })
+  }
+}
+
 // POST NEW TODO
 export const createTodo = async (req: Request, res: Response) => {
   const todo = new Todo(req.body)
