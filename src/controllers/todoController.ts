@@ -5,7 +5,18 @@ import { Request, Response } from "express"
 export const getTodos = async (req: Request, res: Response) => {
   const todos = await Todo.find()
 
-  res.json(todos)
+  // Added better response if no todos on the list
+  if (todos.length === 0) {
+    return res.status(200).json({
+      message: "No todos added on the list!",
+      data: [],
+    })
+  }
+
+  res.json({
+    count: todos.length,
+    data: todos,
+  })
 }
 
 // POST NEW TODO
