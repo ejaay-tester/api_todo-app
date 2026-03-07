@@ -1,4 +1,4 @@
-// MODELS DEFINE DATABASE SCHEMA
+// TODO MODEL OR SCHEMA
 
 import mongoose from "mongoose"
 
