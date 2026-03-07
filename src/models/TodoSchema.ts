@@ -1,6 +1,7 @@
 // TODO MODEL OR SCHEMA
 
 import mongoose from "mongoose"
+import { ref } from "node:process"
 
 const TodoSchema = new mongoose.Schema({
   title: {
@@ -21,6 +22,11 @@ const TodoSchema = new mongoose.Schema({
     type: String,
     enum: ["low", "medium", "high"],
     default: "medium",
+  },
+
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
   },
 
   createdAt: {
