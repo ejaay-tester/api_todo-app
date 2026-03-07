@@ -1,3 +1,6 @@
+// ROUTES DEFINES THE API ENDPOINT
+// ANSWERS "WHAT ENDPOINT EXISTS?"
+
 import express from "express"
 import {
   getTodos,
@@ -9,14 +12,10 @@ import {
 
 const router = express.Router()
 
-router.get("/todos", getTodos)
-
-router.get("/todos/:id", getTodo)
-
-router.post("/todos", createTodo)
-
-router.put("/todos/:id", updateTodo)
-
-router.delete("/todos/:id", deleteTodo)
+router.get("/todos", getTodos) // GET /api/todos
+router.get("/todos/:id", getTodo) // GET /api/todos/:id
+router.post("/todos", createTodo) // POST /api/todos
+router.put("/todos/:id", updateTodo) // PUT /api/todos/:id
+router.delete("/todos/:id", deleteTodo) // DELETE /api/todos:id
 
 export default router

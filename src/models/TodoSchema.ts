@@ -1,3 +1,5 @@
+// MODELS DEFINE DATABASE SCHEMA
+
 import mongoose from "mongoose"
 
 const TodoSchema = new mongoose.Schema({

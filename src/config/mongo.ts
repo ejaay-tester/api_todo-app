@@ -1,5 +1,6 @@
-// Purpose
-// Connect Express API to MongoDB
+// CONTAINS THE DATABASE CONNECTION LOGIC
+// USING MONGOOSE TO CONNECT TO MONGODB
+// CONNECT THE BACKEND APPLICATION TO MONGODB
 
 import mongoose from "mongoose"
 
