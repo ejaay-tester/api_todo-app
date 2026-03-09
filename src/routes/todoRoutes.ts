@@ -9,10 +9,11 @@ import {
   deleteTodo,
   getTodo,
 } from "../controllers/todoController"
+import { authMiddleware } from "../middleware/authMiddleware"
 
 const router = express.Router()
 
-router.get("/todos", getTodos) // GET /api/todos
+router.get("/todos", authMiddleware, getTodos) // GET /api/todos
 router.get("/todos/:id", getTodo) // GET /api/todos/:id
 router.post("/todos", createTodo) // POST /api/todos
 router.put("/todos/:id", updateTodo) // PUT /api/todos/:id
