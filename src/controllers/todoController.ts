@@ -10,6 +10,10 @@ import { Request, Response } from "express"
 
 // GET ALL TODO
 export const getTodos = async (req: Request, res: Response) => {
+  // For pagination
+  const page = Number(req.query.page) || 1
+  const limit = Number(req.query.limit) || 10
+
   const todos = await Todo.find()
 
   // Added better response if no todos on the list
