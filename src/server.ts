@@ -6,23 +6,20 @@
 // 3. CONNECTING SERVICES (DATABASE)
 // 4. LOADING ROUTES
 
-/**
- * Import required libraries
- * express -> web server framework
- * dotenv -> loads environment variables from .env file
- */
+// Import web server framework (express)
 import express from "express"
+
+// Import package that loads environment variables from .env file (dotenv)
 import dotenv from "dotenv"
 
-/**
- * Import database connection
- */
+// Import database connection
 import { connectDB } from "./config/mongo"
 
-/**
- * Import API routes
- */
+// Import API routes
 import todoRoutes from "./routes/todoRoutes"
+
+// Import Rate Limiter middleware
+import { limiter } from "./middleware/rateLimiter"
 
 /**
  * Load environment variables
@@ -45,13 +42,20 @@ console.log("PORT: ", process.env.PORT)
 console.log("MONGO URI: ", process.env.MONGO_URI)
 
 /**
- * Middleware
+ * Global Middlewares
  * Allows Express to parse JSON request bodies
  */
 app.use(express.json())
 
 /**
- * Connect to MongoDB database
+ * Apply the Rate Limiter globally
+ * It is best practice to put this near the top so it protects
+ * the server as early as possible
+ */
+app.use(limiter)
+
+/**
+ * Connect to MongoDB
  */
 connectDB()
 
