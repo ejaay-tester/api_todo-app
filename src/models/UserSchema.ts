@@ -1,4 +1,7 @@
-// USER MODEL OR SCHEMA
+/**
+ * USER SCHEMA OR MODEL
+ * Defines the structure of user documents stored in MongoDB
+ */
 
 import mongoose from "mongoose"
 

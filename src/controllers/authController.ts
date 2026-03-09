@@ -5,8 +5,8 @@
  */
 
 import User from "../models/UserSchema"
-import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
+import bcrypt from "bcryptjs" // For password hashing
+import jwt from "jsonwebtoken" // For authentication token
 import { Request, Response } from "express"
 
 // REGISTER USER
