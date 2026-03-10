@@ -17,6 +17,7 @@ import { connectDB } from "./config/mongo"
 
 // Import API routes
 import todoRoutes from "./routes/todoRoutes"
+import authRoutes from "./routes/authRoutes"
 
 // Import Rate Limiter middleware
 import { limiter } from "./middleware/rateLimiter"
@@ -72,9 +73,11 @@ app.get("/", (req, res) => {
 
 /**
  * Register API routes
+ * All authentication routes will start with /api/auth
  * All todo routes will start with /api
  */
-app.use("/api", todoRoutes)
+app.use("/api/auth", authRoutes) // Auth Routes
+app.use("/api", todoRoutes) // Todo Routes
 
 /**
  * Define server port
