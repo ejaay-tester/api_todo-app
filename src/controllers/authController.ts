@@ -11,44 +11,57 @@ import { Request, Response } from "express"
 
 // REGISTER USER
 export const registerUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body
+  try {
+    const { email, password } = req.body
 
-  const hashedPassword = await bcrypt.hash(password, 10)
+    // Check if user already exists
+    const existingUser = await User.findOne({ email })
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already registered!" })
+    }
 
-  const user = await User.create({
-    email,
-    password: hashedPassword,
-  })
+    // Pass RAW password - the Pre-save hook in UserSchema handles password hashing
+    const user = await User.create({ email, password })
 
-  res.json(user)
+    res.status(201).json({ success: true, data: user })
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: "Registration failed", error: error.message })
+  }
 }
 
 // LOGIN USER WITH JWT
 export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body
+  try {
+    const { email, password } = req.body
+    const secret = process.env.JWT_SECRET
 
-  const user = await User.findOne({ email })
+    // Check if the JWT_SECRET exists
+    if (!secret)
+      throw new Error(
+        "FATAL ERROR: JWT_SECRET is not defined in environment variable (.env)",
+      )
 
-  if (!user) {
-    return res.status(401).json({ message: "Invalid login credentials!" })
+    // Find user and explicitly include password if you used "select: false" in schema
+    const user = await User.findOne({ email })
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials!" })
+    }
+
+    // Compare provided password with hashed password
+    const isMatch = await bcrypt.compare(password, user.password)
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" })
+    }
+
+    // Generate Token (using 'id' to match the authMiddleware)
+    const token = jwt.sign({ id: user._id }, secret as string, {
+      expiresIn: "1h",
+    })
+
+    res.status(200).json({ success: true, token })
+  } catch (error: any) {
+    res.status(500).json({ message: "Login failed", error: error.message })
   }
-
-  const valid = await bcrypt.compare(password, user.password)
-
-  if (!valid) {
-    return res.status(401).json({ message: "Invalid login credentials!" })
-  }
-
-  // Check if the JWT_SECRET exists
-  if (!process.env.JWT_SECRET) {
-    throw new Error(
-      "FATAL ERROR: JWT_SECRET is not defined in environment variables.",
-    )
-  }
-
-  const userToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
-  })
-
-  res.json({ userToken })
 }
