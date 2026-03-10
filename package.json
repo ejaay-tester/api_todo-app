@@ -18,7 +18,8 @@
     "express-rate-limit": "^8.3.0",
     "json-server": "^0.17.4",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^8.23.0"
+    "mongoose": "^8.23.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
