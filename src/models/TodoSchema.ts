@@ -1,38 +1,55 @@
-// TODO MODEL OR SCHEMA
+/**
+ * TODO SCHEMA OR MODEL
+ * Defines the structure of todo collections stored in MongoDB
+ */
 
 import mongoose from "mongoose"
-import { ref } from "node:process"
 
-const TodoSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    require: true,
+export interface ITodo extends mongoose.Document {
+  title: string
+  description?: string
+  completed: boolean
+  priority: "low" | "medium" | "high"
+  userId: mongoose.Types.ObjectId
+  timestamps: {
+    createdAt: Date
+    updatedAt: Date
+  }
+}
+
+const TodoSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: [true, "Title is required"],
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      default: "",
+    },
+
+    completed: {
+      type: Boolean,
+      default: false,
+    },
+
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "medium",
+    },
+
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
-
-  description: {
-    type: String,
+  {
+    timestamps: true, // Automatically adds createdAt and updatedAt fields
   },
+)
 
-  completed: {
-    type: Boolean,
-    default: false,
-  },
-
-  priority: {
-    type: String,
-    enum: ["low", "medium", "high"],
-    default: "medium",
-  },
-
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
-
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-})
-
-export default mongoose.model("Todo", TodoSchema)
+export default mongoose.model<ITodo>("Todo", TodoSchema)
