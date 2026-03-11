@@ -14,8 +14,8 @@ export interface ApiResponse<T = any> {
   error?: any // Include error details if needed
 }
 
-// Success Response
 export class ResponseHandler {
+  // Standard success response
   static success<T>(
     res: Response,
     statusCode: number,
@@ -30,10 +30,8 @@ export class ResponseHandler {
       meta,
     })
   }
-}
 
-// Error Response
-export class ErrorResponseHandler {
+  // Standard error response
   static error(
     res: Response,
     statusCode: number,
@@ -46,10 +44,8 @@ export class ErrorResponseHandler {
       error: process.env.NODE_ENV === "development" ? error : {}, // Include error details in development for debugging
     })
   }
-}
 
-// List response with pagination
-export class ListResponseHandler {
+  // List response with pagination
   static paginated<T>(
     res: Response,
     data: T[],
