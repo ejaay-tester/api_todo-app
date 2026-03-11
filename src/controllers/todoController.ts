@@ -157,7 +157,7 @@ export class TodoController {
   )
 
   /**
-   * DELETE TODO
+   * DELETE TODO (DELETE)
    */
 
   deleteTodo = asyncHandler(
@@ -174,40 +174,4 @@ export class TodoController {
       return ResponseHandler.success(res, 200, "Todo is deleted successfully")
     },
   )
-}
-
-// UPDATE TODO
-export const updateTodo = async (req: Request, res: Response) => {
-  try {
-    const todo = await Todo.findByIdAndUpdate(req.params.id, req.body, {
-      new: true, // Return the updated document
-      runValidators: true, // Ensure updates follow Schema rules
-    })
-
-    if (!todo) {
-      return res.status(404).json({ message: "Todo not found!" })
-    }
-
-    res.status(200).json({ success: true, data: todo })
-  } catch (error) {
-    res.status(400).json({ message: "Update failed", error })
-  }
-}
-
-// DELETE TODO
-export const deleteTodo = async (req: Request, res: Response) => {
-  try {
-    const todo = await Todo.findByIdAndDelete(req.params.id)
-
-    if (!todo) {
-      return res.status(404).json({ message: "Todo not found!" })
-    }
-
-    // Status 200 with a message is often better for SPAs than 204 No Content
-    res
-      .status(200)
-      .json({ status: true, message: "Todo deleted successfully!" })
-  } catch (error) {
-    res.status(400).json({ message: "Delete failed" })
-  }
 }
