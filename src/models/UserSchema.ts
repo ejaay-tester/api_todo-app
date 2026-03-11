@@ -6,7 +6,19 @@
 import mongoose, { mongo } from "mongoose"
 import bcrypt from "bcryptjs"
 
-const UserSchema = new mongoose.Schema(
+// Define a User Interface (Better Practice)
+export interface IUser extends mongoose.Document {
+  _id: mongoose.Types.ObjectId
+  email: string
+  password: string
+  timestamps: {
+    createdAt: Date
+    updatedAt: Date
+  }
+  comparePassword(candidatePassword: string): Promise<boolean>
+}
+
+const UserSchema = new mongoose.Schema<IUser>(
   {
     email: {
       type: String,
@@ -46,12 +58,12 @@ UserSchema.pre("save", async function (next) {
   }
 })
 
-// Define a User Interface (Better Practice)
-export interface IUser extends mongoose.Document {
-  email: string
-  password: string
-  _id: mongoose.Types.ObjectId
+// Method to compare provided password with hashed password in the database
+UserSchema.methods.comparePassword = async function (
+  candidatePassword: string,
+): Promise<boolean> {
+  return bcrypt.compare(candidatePassword, this.password)
 }
 
-// ... then use <IUser> in the model definition
+// Then, use <IUser> in the model definition
 export default mongoose.model<IUser>("User", UserSchema)
