@@ -6,100 +6,174 @@
 // 3. RETURN RESPONSE
 
 import Todo from "../models/TodoSchema"
-import { Request, Response } from "express"
+import { Request, Response, NextFunction } from "express"
+import { TodoRepository } from "../repositories/TodoRepository"
+import { ResponseHandler } from "../utils/response"
+import { asyncHandler, ValidationError } from "../middleware/errorHandler"
 
-// GET ALL TODOS (with Pagination, Filtering, and Search)
-export const getTodos = async (req: Request, res: Response) => {
-  try {
-    /**
-     * PAGINATION LOGIC
-     */
+export class TodoController {
+  private todoRepository: TodoRepository
 
-    // 1. Convert query strings to numbers. Default to page 1 and limit 10.
-    const page = Number(req.query.page) || 1
-    const limit = Number(req.query.limit) || 10
-
-    // 2. Calculate the skip value (e.g., Page 2 with limit 10, skips the first 10 items)
-    const skip = (page - 1) * limit
-
-    /**
-     * FILTERING LOGIC
-     */
-
-    // 3. Define the filter object. 'any' allows us to add dynamic keys based on query.
-    const filter: any = {}
-
-    // 4. Filtering logic:
-    // Filter by completion status
-    // Convert the string "true" / "false" from the URL into a Boolean
-    if (req.query.completed !== undefined) {
-      filter.completed = req.query.completed === "true"
-    }
-
-    // 5. Search logic:
-    // Search by title (case-insensitive)
-    // If you pass ?title=work, it finds todos containing "work"
-    if (req.query.title) {
-      filter.title = { $regex: req.query.title, $options: "i" }
-    }
-
-    // 6. Database Operations
-    // Parallel execution for performance
-    const [todos, total] = await Promise.all([
-      Todo.find(filter)
-        .limit(limit) // Limits the number of results returned
-        .skip(skip) // Skips the items from the previous pages
-        .sort({ createdAt: -1 }), // Shows newest items first
-      Todo.countDocuments(filter), // Counts total items matching the filter
-    ])
-
-    // 7. Response includes data + pagination metadata
-    res.status(200).json({
-      success: true,
-      count: todos.length,
-      totalItems: total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      data: todos, // If list is todo list is empty, data will naturally be []
-      message:
-        todos.length === 0
-          ? "No todos added on the list!"
-          : "Todos retrieved successfully!",
-    })
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error })
+  constructor() {
+    this.todoRepository = new TodoRepository()
   }
-}
 
-// GET SINGLE TODO
-export const getTodo = async (req: Request, res: Response) => {
-  try {
-    const todo = await Todo.findById(req.params.id)
+  /**
+   * FETCH ALL TODOS WITH PAGINATION AND FILTERING (GET)
+   */
 
-    if (!todo) {
-      return res.status(404).json({ message: "Todo not found!" })
-    }
+  getAllTodos = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      /**
+       * PAGINATION LOGIC
+       */
 
-    res.status(200).json({ success: true, data: todo })
-  } catch (error) {
-    // Catching malformed MongoDB IDs
-    res.status(400).json({ message: "Invalid ID format" })
-  }
-}
+      // Convert query strings to numbers. Default to page 1 and limit 10.
+      const page = Number(req.query.page) || 1
+      const limit = Number(req.query.limit) || 10
 
-// POST NEW TODO
-export const createTodo = async (req: Request, res: Response) => {
-  try {
-    // Validation: Ensure title exists in body
-    if (!req.body.title) {
-      return res.status(400).json({ message: "Title is required!" })
-    }
+      // Calculate the skip value (e.g., Page 2 with limit 10, skips the first 10 items)
+      const skip = (page - 1) * limit
 
-    const todo = await Todo.create(req.body)
-    res.status(201).json({ success: true, data: todo })
-  } catch (error) {
-    res.status(400).json({ message: "Failed to create todo", error })
-  }
+      // Input validation
+      if (page < 1 || limit < 1) {
+        throw new ValidationError("Page and limit must be greater than 0")
+      }
+
+      /**
+       * FILTERING LOGIC
+       */
+
+      // Define the filter object. 'any' allows us to add dynamic keys based on query.
+      const filter: any = {}
+
+      // Filter by completion status
+      // Convert the string "true" / "false" from the URL into a Boolean
+      if (req.query.completed !== undefined) {
+        filter.completed = req.query.completed === "true"
+      }
+
+      /**
+       * SEARCH LOGIC
+       */
+      // Sanitize search input
+      // Search by title (case-insensitive)
+      // If you pass ?title=work, it finds todos containing "work"
+      if (req.query.title) {
+        const sanitizedTitle = String(req.query.title).replace(
+          /[.*+?^${}()|[\]\\]/g,
+          "\\$&",
+        )
+        filter.title = { $regex: sanitizedTitle, $options: "i" }
+      }
+
+      // Add user filter if authenticated
+      if ((req as any).user) {
+        filter.userId = (req as any).user.id
+      }
+
+      const { todos, total } = await this.todoRepository.findAllTodo(filter, {
+        page,
+        limit,
+      })
+
+      // Response includes data + pagination metadata
+      return ResponseHandler.paginated(
+        res,
+        todos,
+        total,
+        page,
+        limit,
+        todos.length === 0 ? "No todos found" : "Todos retrieved successfully",
+      )
+    },
+  )
+
+  /**
+   * FETCH SINGLE TODO BY ID (GET)
+   */
+  getTodoById = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const todo = await this.todoRepository.findTodoById(String(req.params.id))
+      return ResponseHandler.success(
+        res,
+        200,
+        "Todo retrieved successfully",
+        todo,
+      )
+    },
+  )
+
+  /**
+   * CREATE NEW TODO (POST)
+   */
+  createTodo = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { title } = req.body
+
+      // Validation: Ensure title exists in body
+      if (!title || !title.trim()) {
+        throw new ValidationError("Title is required!")
+      }
+
+      const todo = await this.todoRepository.createTodo({
+        ...req.body,
+        userId: (req as any).user.id,
+      })
+
+      return ResponseHandler.success(
+        res,
+        201,
+        "Todo created successfully",
+        todo,
+      )
+    },
+  )
+
+  /**
+   * UPDATE TODO (PUT/PATCH)
+   */
+  updateTodo = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      // Validate ownership
+      const existingTodo = await this.todoRepository.findTodoById(
+        String(req.params.id),
+      )
+      if (existingTodo?.userId.toString() !== (req as any).user.id) {
+        throw new ValidationError("You can only update your own todos")
+      }
+      const todo = await this.todoRepository.updateTodo(
+        String(req.params.id),
+        req.body,
+      )
+
+      return ResponseHandler.success(
+        res,
+        200,
+        "Todo is successfully updated",
+        todo,
+      )
+    },
+  )
+
+  /**
+   * DELETE TODO
+   */
+
+  deleteTodo = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      // Validate ownership
+      const existingTodo = await this.todoRepository.findTodoById(
+        String(req.params.id),
+      )
+      if (existingTodo?.userId.toString() !== (req as any).user.id) {
+        throw new ValidationError("You can only delete your own todos")
+      }
+      await this.todoRepository.deleteTodo(String(req.params.id))
+
+      return ResponseHandler.success(res, 200, "Todo is deleted successfully")
+    },
+  )
 }
 
 // UPDATE TODO

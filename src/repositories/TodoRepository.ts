@@ -24,8 +24,11 @@ export class TodoRepository {
     const skip = (options.page - 1) * options.limit
 
     const [todos, total] = await Promise.all([
-      Todo.find(filter).limit(options.limit).skip(skip).sort({ createdAt: -1 }),
-      Todo.countDocuments(filter),
+      Todo.find(filter)
+        .limit(options.limit) // Limits the number of results returned
+        .skip(skip) // Skips the items from the previous pages
+        .sort({ createdAt: -1 }), // Shows newest items first
+      Todo.countDocuments(filter), // Counts total items matching the filter
     ])
     return { todos, total }
   }
