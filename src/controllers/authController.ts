@@ -4,64 +4,110 @@
  * NEVER STORE RAW PASSWORD
  */
 
-import User from "../models/UserSchema"
-import bcrypt from "bcryptjs" // For password hashing
+import { Request, Response, NextFunction } from "express"
 import jwt from "jsonwebtoken" // For authentication token
-import { Request, Response } from "express"
+import User from "../models/UserSchema"
+import { ResponseHandler } from "../utils/response"
+import { asyncHandler } from "../middleware/errorHandler"
+import { UnauthorizedError, ValidationError } from "../middleware/errorHandler"
+import { registerSchema, loginSchema } from "../schemas/authSchemas"
 
-// REGISTER USER
-export const registerUser = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body
+export class AuthController {
+  /**
+   * REGISTER USER (POST)
+   * - Check if user already exists
+   * - Hash password (handled by Mongoose pre-save hook in UserSchema)
+   * - Save user to database
+   * - Return success response
+   */
+  registerUser = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      // Validate input using Zod
+      const parsed = registerSchema.safeParse(req.body)
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email })
-    if (existingUser) {
-      return res.status(400).json({ message: "Email already registered!" })
-    }
+      if (!parsed.success) {
+        throw new ValidationError(JSON.stringify(parsed.error.issues))
+      }
 
-    // Pass RAW password - the Pre-save hook in UserSchema handles password hashing
-    const user = await User.create({ email, password })
+      const { email, password } = parsed.data
 
-    res.status(201).json({ success: true, data: user })
-  } catch (error: any) {
-    res
-      .status(500)
-      .json({ message: "Registration failed", error: error.message })
-  }
-}
+      // Check if user already exists
+      const existingUser = await User.findOne({ email })
+      if (existingUser) {
+        throw new ValidationError("Email already registered!")
+      }
 
-// LOGIN USER WITH JWT
-export const loginUser = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body
-    const secret = process.env.JWT_SECRET
+      // Pass RAW password - the Pre-save hook in UserSchema handles password hashing
+      const user = await User.create({ email, password })
 
-    // Check if the JWT_SECRET exists
-    if (!secret)
-      throw new Error(
-        "FATAL ERROR: JWT_SECRET is not defined in environment variable (.env)",
-      )
+      // Generate JWT Token (optional, but common practice after registration)
+      const secret = process.env.JWT_SECRET
 
-    // Find user and explicitly include password if you used "select: false" in schema
-    const user = await User.findOne({ email })
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials!" })
-    }
+      // Check if the JWT_SECRET exists
+      if (!secret) {
+        throw new Error(
+          "FATAL ERROR: JWT_SECRET is not defined in environment variable (.env)",
+        )
+      }
+      const token = jwt.sign({ id: user._id, email: user.email }, secret, {
+        expiresIn: "7h",
+      })
 
-    // Compare provided password with hashed password
-    const isMatch = await bcrypt.compare(password, user.password)
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" })
-    }
+      return ResponseHandler.success(res, 201, "User registered successfully", {
+        user,
+        token,
+      })
+    },
+  )
 
-    // Generate Token (using 'id' to match the authMiddleware)
-    const token = jwt.sign({ id: user._id }, secret as string, {
-      expiresIn: "1h",
-    })
+  /**
+   * LOGIN USER WITH JWT (POST)
+   * - Validate credentials
+   * - Generate JWT token
+   * - Return token in response
+   */
+  loginUser = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      // Validate input using Zod
+      const parsed = loginSchema.safeParse(req.body)
 
-    res.status(200).json({ success: true, token })
-  } catch (error: any) {
-    res.status(500).json({ message: "Login failed", error: error.message })
-  }
+      if (!parsed.success) {
+        throw new ValidationError(JSON.stringify(parsed.error.issues))
+      }
+
+      const { email, password } = parsed.data
+
+      // Generate JWT Token (optional, but common practice after registration)
+      const secret = process.env.JWT_SECRET
+
+      // Check if the JWT_SECRET exists
+      if (!secret) {
+        throw new Error(
+          "FATAL ERROR: JWT_SECRET is not defined in environment variable (.env)",
+        )
+      }
+
+      // Find user and explicitly include password if you used "select: false" in schema
+      const user = await User.findOne({ email }).select("+password") // Include password for comparison
+      if (!user) {
+        throw new UnauthorizedError("Invalid email or password!")
+      }
+
+      // Compare provided password with hashed password
+      const isMatch = await user.comparePassword(password)
+      if (!isMatch) {
+        throw new UnauthorizedError("Invalid login credentials")
+      }
+
+      // Generate Token (using 'id' to match the authMiddleware)
+      const token = jwt.sign({ id: user._id, email: user.email }, secret, {
+        expiresIn: "7h",
+      })
+
+      return ResponseHandler.success(res, 200, "Login successful", {
+        user,
+        token,
+      })
+    },
+  )
 }
