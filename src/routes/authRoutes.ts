@@ -1,18 +1,27 @@
 import express from "express"
-import { registerUser, loginUser } from "../controllers/authController"
+import { AuthController } from "../controllers/authController"
 import { validateRequest } from "../middleware/validationRequest"
-import { registerSchema, loginSchema } from "../schemas/authSchemas"
 
 const router = express.Router()
+const authController = new AuthController()
 
 /**
- * Register a new user
+ * BIND METHODS TO PRESERVE 'this' CONTEXT
+ * - This ensures that when the controller methods are called, they have access to the correct 'this' context, which is important for accessing class properties and methods.
  */
-router.post("/register", validateRequest(registerSchema), registerUser) // POST /api/register
 
-/**
- * Login user and return JSON Web Token or JWT
- */
-router.post("/login", validateRequest(loginSchema), loginUser) // POST /api/login
+// POST /api/register
+router.post(
+  "/register",
+  validateRequest,
+  authController.registerUser.bind(authController),
+)
+
+// POST /api/login
+router.post(
+  "/login",
+  validateRequest,
+  authController.loginUser.bind(authController),
+)
 
 export default router
