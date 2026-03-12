@@ -2,21 +2,20 @@
 // ANSWERS "WHAT ENDPOINT EXISTS?"
 
 import express from "express"
-import {
-  getTodos,
-  createTodo,
-  updateTodo,
-  deleteTodo,
-  getTodo,
-} from "../controllers/todoController"
+import { TodoController } from "../controllers/todoController"
 import { authMiddleware } from "../middleware/authMiddleware"
+import { todo } from "node:test"
 
 const router = express.Router()
+const todoController = new TodoController()
 
-router.get("/todos", authMiddleware, getTodos) // GET /api/todos
-router.get("/todos/:id", getTodo) // GET /api/todos/:id
-router.post("/todos", createTodo) // POST /api/todos
-router.put("/todos/:id", updateTodo) // PUT /api/todos/:id
-router.delete("/todos/:id", deleteTodo) // DELETE /api/todos:id
+// Protect all todo routes with authentication middleware
+router.use(authMiddleware)
+
+router.get("/todos", todoController.getAllTodos.bind(todoController)) // GET /api/todos
+router.get("/todos/:id", todoController.getTodoById.bind(todoController)) // GET /api/todos/:id
+router.post("/todos", todoController.createTodo.bind(todoController)) // POST /api/todos
+router.put("/todos/:id", todoController.updateTodo.bind(todoController)) // PUT /api/todos/:id
+router.delete("/todos/:id", todoController.deleteTodo.bind(todoController)) // DELETE /api/todos:id
 
 export default router
