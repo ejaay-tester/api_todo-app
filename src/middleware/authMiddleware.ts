@@ -4,60 +4,89 @@
  */
 import { Request, Response, NextFunction } from "express"
 import jwt from "jsonwebtoken"
+import { UnauthorizedError } from "./errorHandler"
 
 /**
- * Created a "CustomRequest" because the default Express Request
- * doesn't have a "user" property. This tells the TS it's okay to add it
+ * DEFINE DATA SHAPES
+ * Define exactly what a 'User' looks like inside our JWT
  */
-interface CustomRequest extends Request {
-  user?: any
+interface UserPayLoad {
+  id: string
+  email: string
+  iat: number // issued at -> the exact second the token was created, it's a Unix timestamp (a long string of numbers)
+  exp: number // expiration -> the exact second the token will die, after this time the jwt.verify function will auto fail, even if the password is correct
 }
 
-// The middleware function: it sits between the Request and the Final Route
+/**
+ * EXTEND EXPRESS REQUEST
+ * Express's default 'Request' doesn't know about 'req.user'
+ * We extend it here so TypeScript allows us to attach user data later
+ */
+export interface AuthRequest extends Request {
+  user?: UserPayLoad
+}
+
+/**
+ * THE AUTHENTICATION MIDDLEWARE
+ * This function intercepts the request before it reaches your private routes
+ */
 export const authMiddleware = (
-  req: CustomRequest,
+  req: AuthRequest,
   res: Response,
   next: NextFunction,
 ) => {
-  // 1. Look for the 'Authorization' header (usually looks like: "Bearer <token>")
+  /**
+   * EXTRACT THE TOKEN
+   * Expected Header: "Authorization: Bearer <token>"
+   * We split by space and take the second element [1]
+   */
   const authHeader = req.headers.authorization
+  const token = authHeader?.split(" ")[1]
 
-  // 2. If the header is missing, stop here and returns a 401 (Unauthorized) error
-  if (!authHeader) {
-    return res.status(401).json({ message: "No token provided!" })
-  }
-
-  // 3. The header is "Bearer [token]", .split(" ")[1] grabs just the [token] part
-  const token = authHeader.split(" ")[1]
-
-  // 4. Safety check: If the split fails or the token is empty, stop the request.
-  if (!token) {
-    return res.status(401).json({ message: "Malformed token!" })
-  }
-
-  // 5. Get the secret key from the .env file
+  /**
+   * CHECK ENVIRONMENT VARIABLES
+   * If JWT_SERCRET is missing, the server is misconfigured
+   * We pass a standard Error to next() to trigger the global error handler
+   */
   const secret = process.env.JWT_SECRET
-
-  // 6. Security/Safety: If you forgot to set your secret in .env,
-  // crash the server immediately so you don't run an insecure app.
   if (!secret) {
-    throw new Error("FATAL ERROR: JWT_SECRET is not defined!")
+    return next(new Error("FATAL ERROR: JWT_SECRET is not defined!"))
+  }
+
+  /**
+   * GUARD CLAUSE - NO TOKEN
+   * If the user didn't send a token, we stop here and return a 401 status
+   */
+  if (!token) {
+    return next(new UnauthorizedError("No token provided!"))
   }
 
   try {
-    // 7. Verification: jwt.verify checks if the token is real and not expired.
-    // It uses the 'secret' to decrypt/validate the signature.
-    const decoded = jwt.verify(token, secret)
+    /**
+     * VERIFY AND DECODE
+     * jwt.verify checks if the token is tampered with or expired
+     * We cast it as 'UserPayload' to satisfy TypeScript's strict checks
+     */
+    const decoded = jwt.verify(token, secret) as UserPayLoad
 
-    // 8. Success! Store the user data (id or email) inside the 'req' object.
-    // This makes the user's info available to the next function/controller.
+    /**
+     * ATTACH TO REQUEST
+     * We save the decoded user data into 'req.user'
+     * Any route following this middleware can now access 'req.user.id'
+     */
     req.user = decoded
 
-    // 9. Everything is good. Move to the next function in the route
+    /**
+     * PROCEED
+     * next() tells Express to move to the next function/route handler
+     */
     next()
   } catch (error) {
-    // 10. If jwt.verify fails (token expired, tempered with, or wrong secret),
-    // catch the error and tell the user they aren't allowed in.
-    return res.status(401).json({ message: "Invalid token" })
+    /**
+     * HANDLE INVALID TOKENS
+     * If verification fails (expired/wrong secret), we catch the error
+     * and pass a 401 Unauthorized error to the global handler
+     */
+    next(new UnauthorizedError("Invalid or expired token!"))
   }
 }
