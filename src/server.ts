@@ -1,83 +1,25 @@
-// SERVER.TS IS THE ENTRY POINT OF THE BACKEND APPLICATION
-// THINK OF IT AS A STARTUP FILE
-// IT RESPONSIBLE FOR:
-// 1. STARTING THE SERVER
-// 2. CONFIGURING MIDDLEWARE
-// 3. CONNECTING SERVICES (DATABASE)
-// 4. LOADING ROUTES
-
-// Import web server framework (express)
-import express from "express"
-
-// Import package that loads environment variables from .env file (dotenv)
-import dotenv from "dotenv"
-
-// Import database connection
-import { connectDB } from "./config/mongo"
-
-// Import API routes
-import todoRoutes from "./routes/todoRoutes"
-import authRoutes from "./routes/authRoutes"
-
-// Import Rate Limiter middleware
-import { limiter } from "./middleware/rateLimiter"
-
 /**
- * Load environment variables
- * Example variable:
- * PORT
- * MONGO_URI
+ * Server.ts is the entry point of the backend application
+ * Think of it as a startup file
+ * It is responsible for:
+ * 1. Starting the server
+ * 2. Configuring middleware
+ * 3. Connecting services (Database)
+ * 4. Loading routes
  */
-dotenv.config()
 
-/**
- * Creates Express app instances
- */
-const app = express()
+import express, { Request, Response } from "express" // Web server framework
+import dotenv from "dotenv" // Package that loads env variables from .env file
+import todoRoutes from "./routes/todoRoutes" // API todo routes
+import authRoutes from "./routes/authRoutes" // API auth routes
+import { connectDB } from "./config/mongo" // Database connection
+import { errorHandler } from "./middleware/errorHandler" // Error handler
+import { loggerMiddleware } from "./middleware/logger" // Request tracking logger
+import { limiter } from "./middleware/rateLimiter" // Rate limiter middleware
 
-/**
- * Log environment variables for debugging
- */
-console.log("Environment checking...")
-console.log("PORT: ", process.env.PORT)
-console.log("MONGO URI: ", process.env.MONGO_URI)
+dotenv.config() // loads env variables (example variable: PORT, MONGO_URI, etc...)
 
-/**
- * Global Middlewares
- * Allows Express to parse JSON request bodies
- */
-app.use(express.json())
-
-/**
- * Apply the Rate Limiter globally
- * It is best practice to put this near the top so it protects
- * the server as early as possible
- */
-app.use(limiter)
-
-/**
- * Connect to MongoDB
- */
-connectDB()
-
-/**
- * Add Health check endpoint
- * Used to confirm the server is running
- */
-app.get("/", (req, res) => {
-  res.json({
-    message: "Todo API is running",
-    version: "1.0.0",
-  })
-})
-
-/**
- * Register API routes
- * All authentication routes will start with /api/auth
- * All todo routes will start with /api
- */
-app.use("/api/auth", authRoutes) // Auth Routes
-app.use("/api", todoRoutes) // Todo Routes
+const app = express() // Creates Express app instances
 
 /**
  * Define server port
@@ -86,40 +28,60 @@ app.use("/api", todoRoutes) // Todo Routes
  */
 const PORT = process.env.PORT || 3000
 
+// Log environment variables for debugging
+console.log("Environment checking...")
+console.log("PORT: ", process.env.PORT)
+console.log("MONGO URI: ", process.env.MONGO_URI)
+
+// Global Middleware
+app.use(express.json()) // Allows Expres to parse JSON request bodies
+
 /**
- * Start Express server
- * Listen for incoming requests
+ * Rate Limiting
+ * It is best practice to put this near the top so it protects
+ * the server as early as possible
  */
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+app.use(limiter)
+
+// Logger middleware
+app.use(loggerMiddleware)
+
+/**
+ * Health check endpoint
+ * Used to confirm the server is running
+ */
+app.get("/", (req: Request, res: Response) => {
+  res.status(200).json({
+    status: "OK",
+    message: "Todo API is running",
+    version: "1.0.0",
+    timestamp: new Date().toDateString(),
+  })
 })
 
-// Creates router based on db.json
-// const router = jsonServer.router("db.json")
+/**
+ * Routes
+ * All authentication routes will start with /api/auth
+ * All todo routes will start with /api
+ */
+app.use("/api/auth", authRoutes)
+app.use("/api", todoRoutes)
 
-// Adds default JSON Server middlewares, logger, CORS, static, no-cache
-// const middlewares = jsonServer.defaults()
+// 404 handler
+app.use("*", (req: Request, res: Response) => {
+  res.status(404).json({ success: false, message: "Route not found" })
+})
 
-// Applies JSON Server default middleware
-// This already includes body parsing behavior
-// app.use(middlewares)
+// Error handling (must be last)
+app.use(errorHandler)
 
-// AUTHENTICATION MIDDLEWARE --> app.use((req,res,next) => {})
-// Custom middleware runs before router
-// app.use((req: Request, res: Response, next: NextFunction) => {
-//   if (req.method !== "GET") {
-//     const authHeader = req.headers.authorization // Reads Authorization header
-
-//     if (!authHeader || authHeader !== "Bearer mysecrettoken") {
-//       // Checks if header is missing OR token is incorrect
-//       // If invalid, return 401
-//       return res.status(401).json({
-//         errorCode: "UNAUTHORIZED",
-//         message: "Invalid or missing token",
-//       })
-//     }
-//   }
-
-//   // If valid -> proceed to router
-//   next()
-// })
+/**
+ * Database & Server
+ * Connect to MongoDB and start Express server
+ * Listen for incoming requests
+ */
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`✅ Server is running on http://localhost:${PORT}`)
+  })
+})
