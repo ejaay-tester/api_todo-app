@@ -21,7 +21,7 @@ export class TodoService {
     filters: {
       completed?: boolean
       title?: string
-      priority?: string
+      priority?: "low" | "medium" | "high"
     },
     pagination: { page: number; limit: number }, // Object containing page number and items per page
   ) {
@@ -76,14 +76,25 @@ export class TodoService {
 
     // Run three database counts simultaneously to improve performance
     const [todos, completed, pending] = await Promise.all([
-      this.todoRepository.findAllTodo(filter, { page: 1, limit: 1000 }), // Total count
+      /**
+       * Total todos count (including the completed and pending todos)
+       */
+      this.todoRepository.findAllTodo(filter, { page: 1, limit: 1000 }),
+
+      /**
+       * Completed todos count
+       */
       this.todoRepository.findAllTodo(
         { ...filter, completed: true },
-        { page: 1, limit: 1000 }, // Completed count
+        { page: 1, limit: 1000 },
       ),
+
+      /**
+       * Pending todos count
+       */
       this.todoRepository.findAllTodo(
         { ...filter, completed: false },
-        { page: 1, limit: 1000 }, // Pending count
+        { page: 1, limit: 1000 },
       ),
     ])
 
@@ -92,7 +103,12 @@ export class TodoService {
       totalTodos: todos.total,
       completedTodos: completed.total,
       pendingTodos: pending.total,
-      // Calculate percentage; defaults to 0 if the user has no tasks to avoid division by zero
+
+      /**
+       * Calculate the completion rate percentage
+       * Defaults to zero (0) if the user has no todos/tasks
+       * to avoid division by zero
+       */
       completionRate:
         todos.total > 0
           ? ((completed.total / todos.total) * 100).toFixed(2)
