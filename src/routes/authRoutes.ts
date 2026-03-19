@@ -1,6 +1,7 @@
 import express from "express"
 import { AuthController } from "../controllers/authController"
 import { validateRequest } from "../middleware/validationRequest"
+import { loginSchema, registerSchema } from "../schemas/authSchemas"
 
 const router = express.Router()
 const authController = new AuthController()
@@ -13,14 +14,14 @@ const authController = new AuthController()
 // POST /api/register
 router.post(
   "/register",
-  validateRequest,
+  validateRequest(registerSchema),
   authController.registerUser.bind(authController),
 )
 
 // POST /api/login
 router.post(
   "/login",
-  validateRequest,
+  validateRequest(loginSchema),
   authController.loginUser.bind(authController),
 )
 
