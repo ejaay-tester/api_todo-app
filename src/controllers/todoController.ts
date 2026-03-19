@@ -95,6 +95,7 @@ export class TodoController {
   getTodoById = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const todo = await this.todoRepository.findTodoById(String(req.params.id))
+      console.log("Fetched Todo:", todo)
       return ResponseHandler.success(
         res,
         200,
@@ -120,6 +121,7 @@ export class TodoController {
         ...req.body,
         userId: (req as any).user.id,
       })
+      console.log("Created todo:", todo)
 
       return ResponseHandler.success(
         res,
@@ -146,6 +148,7 @@ export class TodoController {
         String(req.params.id),
         req.body,
       )
+      console.log("Updated Todo:", todo)
 
       return ResponseHandler.success(
         res,
@@ -170,6 +173,7 @@ export class TodoController {
         throw new ValidationError("You can only delete your own todos")
       }
       await this.todoRepository.deleteTodo(String(req.params.id))
+      console.log("Deleted Todo ID:", req.params.id)
 
       return ResponseHandler.success(res, 200, "Todo is deleted successfully")
     },
