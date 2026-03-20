@@ -77,6 +77,7 @@ export class TodoController {
         limit,
       })
 
+      console.log("Fetched Todo:", todos)
       // Response includes data + pagination metadata
       return ResponseHandler.paginated(
         res,
