@@ -15,10 +15,11 @@ import { registerSchema, loginSchema } from "../schemas/authSchemas"
 export class AuthController {
   /**
    * REGISTER USER (POST)
-   * - Check if user already exists
+   * - Validate input
+   * - Check existing user
+   * - Create user
    * - Hash password (handled by Mongoose pre-save hook in UserSchema)
-   * - Save user to database
-   * - Return success response
+   * - DO NOT return token
    */
   registerUser = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -37,34 +38,27 @@ export class AuthController {
         throw new ValidationError("Email already registered!")
       }
 
-      // Pass RAW password - the Pre-save hook in UserSchema handles password hashing
+      // Create user (password hashed via pre-save hook)
       const user = await User.create({ email, password })
 
-      // Generate JWT Token (optional, but common practice after registration)
-      const secret = process.env.JWT_SECRET
-
-      // Check if the JWT_SECRET exists
-      if (!secret) {
-        throw new Error(
-          "FATAL ERROR: JWT_SECRET is not defined in environment variable (.env)",
-        )
+      // DO NOT include password in response
+      const safeUser = {
+        id: user.id,
+        email: user.email,
       }
-      const token = jwt.sign({ id: user._id, email: user.email }, secret, {
-        expiresIn: "7h",
-      })
 
       return ResponseHandler.success(res, 201, "User registered successfully", {
-        user,
-        token,
+        user: safeUser,
       })
     },
   )
 
   /**
-   * LOGIN USER WITH JWT (POST)
-   * - Validate credentials
+   * LOGIN USER (POST)
+   * - Validate input
+   * - Verify credentials
    * - Generate JWT token
-   * - Return token in response
+   * - Return token
    */
   loginUser = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -83,7 +77,7 @@ export class AuthController {
       // Check if the JWT_SECRET exists
       if (!secret) {
         throw new Error(
-          "FATAL ERROR: JWT_SECRET is not defined in environment variable (.env)",
+          "FATAL ERROR: JWT_SECRET is not defined in environment variables",
         )
       }
 
@@ -96,7 +90,7 @@ export class AuthController {
       // Compare provided password with hashed password
       const isMatch = await user.comparePassword(password)
       if (!isMatch) {
-        throw new UnauthorizedError("Invalid login credentials")
+        throw new UnauthorizedError("Invalid email or password")
       }
 
       // Generate Token (using 'id' to match the authMiddleware)
@@ -104,8 +98,14 @@ export class AuthController {
         expiresIn: "7h",
       })
 
+      // Never return password
+      const safeUser = {
+        id: user._id,
+        email: user.email,
+      }
+
       return ResponseHandler.success(res, 200, "Login successful", {
-        user,
+        user: safeUser,
         token,
       })
     },
