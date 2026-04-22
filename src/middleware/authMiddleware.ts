@@ -75,7 +75,8 @@ export const authMiddleware = (
      * Any route following this middleware can now access 'req.user.id'
      */
     req.user = decoded
-    console.log("Success! User ID is:", req.user) // For testing purposes only
+    // For testing purposes only
+    // console.log("Success! User ID is:", req.user)
 
     /**
      * PROCEED

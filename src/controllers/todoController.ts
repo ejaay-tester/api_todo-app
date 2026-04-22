@@ -14,6 +14,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../middleware/errorHandler"
+import { todo } from "node:test"
 
 export class TodoController {
   private todoRepository: TodoRepository
@@ -81,7 +82,14 @@ export class TodoController {
         limit,
       })
 
-      console.log("Fetched Todo:", todos)
+      res.on("finish", () => {
+        todos.forEach((todo) => {
+          console.log(
+            `↳ [ACTION] TODO FETCHED - ID: ${todo._id} | TITLE: ${todo.title} | COMPLETED: ${todo.completed}`,
+          )
+        })
+      })
+
       // Response includes data + pagination metadata
       return ResponseHandler.paginated(
         res,
@@ -105,7 +113,11 @@ export class TodoController {
         throw new NotFoundError("Todo not found!")
       }
 
-      console.log("Fetched Todo:", todo)
+      res.on("finish", () => {
+        console.log(
+          `↳ [ACTION] TODO FETCHED - ID: ${todo._id} | TITLE: ${todo.title} | COMPLETED: ${todo.completed}`,
+        )
+      })
 
       return ResponseHandler.success(
         res,
@@ -132,7 +144,12 @@ export class TodoController {
         ...req.body,
         userId: (req as any).user.id,
       })
-      console.log("Created todo:", todo)
+
+      res.on("finish", () => {
+        console.log(
+          `↳ [ACTION] TODO CREATED - ID: ${todo._id} | TITLE: ${todo.title} | DESCRIPTION: ${todo.description} | COMPLETED: ${todo.completed}`,
+        )
+      })
 
       return ResponseHandler.success(
         res,
@@ -159,7 +176,12 @@ export class TodoController {
         String(req.params.id),
         req.body,
       )
-      console.log("Updated Todo:", todo)
+
+      res.on("finish", () => {
+        console.log(
+          `↳ [ACTION] TODO UPDATED - ID: ${todo?._id} | TITLE: ${todo?.title} | DESCRIPTION: ${todo?.description} | COMPLETED: ${todo?.completed}`,
+        )
+      })
 
       return ResponseHandler.success(
         res,
@@ -195,9 +217,11 @@ export class TodoController {
       const deletedTodo = await this.todoRepository.deleteTodo(
         String(req.params.id),
       )
-      console.log(
-        `Deleted Todo ID: ${String(req.params.id)} | Success: ${deletedTodo}`,
-      )
+      res.on("finish", () => {
+        console.log(
+          `↳ [ACTION] TODO DELETED - ID: ${String(req.params.id)} | TITLE: ${deletedTodo?.title} | COMPLETED: ${deletedTodo?.completed}`,
+        )
+      })
 
       // Return 204 (No Content) - The industry-standard for deletes
       return res.status(204).send()

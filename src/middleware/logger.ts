@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction, response } from "express"
-import { timeStamp } from "node:console"
 
 export const loggerMiddleware = (
   req: Request,
@@ -26,7 +25,7 @@ export const loggerMiddleware = (
       status >= 500 ? "🔴" : status >= 400 ? "🟡" : status >= 300 ? "🔵" : "🟢"
 
     console.log(
-      `${color} [${log.timeStamp}] ${log.method} ${log.path} - ${log.status} (${log.duration})`,
+      `${color} [${log.timeStamp}] STATUS ${log.status} - ${log.method} ${log.path} (${log.duration})`,
     )
   })
 
