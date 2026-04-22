@@ -9,7 +9,11 @@ import Todo from "../models/TodoSchema"
 import { Request, Response, NextFunction } from "express"
 import { TodoRepository } from "../repositories/TodoRepository"
 import { ResponseHandler } from "../utils/response"
-import { asyncHandler, ValidationError } from "../middleware/errorHandler"
+import {
+  asyncHandler,
+  NotFoundError,
+  ValidationError,
+} from "../middleware/errorHandler"
 
 export class TodoController {
   private todoRepository: TodoRepository
@@ -96,7 +100,13 @@ export class TodoController {
   getTodoById = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const todo = await this.todoRepository.findTodoById(String(req.params.id))
+
+      if (!todo) {
+        throw new NotFoundError("Todo not found!")
+      }
+
       console.log("Fetched Todo:", todo)
+
       return ResponseHandler.success(
         res,
         200,
@@ -170,13 +180,27 @@ export class TodoController {
       const existingTodo = await this.todoRepository.findTodoById(
         String(req.params.id),
       )
+
+      if (!existingTodo) {
+        // If the todo doesn't exist, return 404 immediately
+        // This helps your tests know they are trying to delete something already gone
+        throw new NotFoundError("Todo not found!")
+      }
+
       if (existingTodo?.userId.toString() !== (req as any).user.id) {
         throw new ValidationError("You can only delete your own todos")
       }
-      await this.todoRepository.deleteTodo(String(req.params.id))
-      console.log("Deleted Todo ID:", req.params.id)
 
-      return ResponseHandler.success(res, 200, "Todo is deleted successfully")
+      // Capture the result of the delete
+      const deletedTodo = await this.todoRepository.deleteTodo(
+        String(req.params.id),
+      )
+      console.log(
+        `Deleted Todo ID: ${String(req.params.id)} | Success: ${deletedTodo}`,
+      )
+
+      // Return 204 (No Content) - The industry-standard for deletes
+      return res.status(204).send()
     },
   )
 }
