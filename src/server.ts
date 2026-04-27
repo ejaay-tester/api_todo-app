@@ -15,7 +15,7 @@ import authRoutes from "./routes/authRoutes" // API auth routes
 import { connectDB } from "./config/mongo" // Database connection
 import { errorHandler } from "./middleware/errorHandler" // Error handler
 import { loggerMiddleware } from "./middleware/logger" // Request tracking logger
-import { limiter } from "./middleware/rateLimiter" // Rate limiter middleware
+// import { limiter } from "./middleware/rateLimiter"
 
 dotenv.config() // loads env variables (example variable: PORT, MONGO_URI, etc...)
 
@@ -41,7 +41,7 @@ app.use(express.json()) // Allows Expres to parse JSON request bodies
  * It is best practice to put this near the top so it protects
  * the server as early as possible
  */
-app.use(limiter)
+// app.use(limiter)
 
 // Logger middleware
 app.use(loggerMiddleware)
