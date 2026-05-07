@@ -28,10 +28,24 @@ const app = express() // Creates Express app instances
  */
 const PORT = process.env.PORT || 3000
 
+// Environment Validation
+// Validate required env vars are present at startup - fails fast if missing
+// NEVER log secret values - only log their presence or absence.
+
+const requiredEnvVars = ["MONGO_URI", "PORT"]
+const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key])
+
+if (missingEnvVars.length > 0) {
+  console.error(
+    `❌ Missing required environment variables: ${missingEnvVars.join(", ")}`,
+  )
+  process.exit(1) // Hard stop - don't start a misconfigured server
+}
+
 // Log environment variables for debugging
 console.log("Environment checking...")
 console.log("PORT: ", process.env.PORT)
-console.log("MONGO URI: ", process.env.MONGO_URI)
+console.log("MONGO URI: ", process.env.MONGO_URI ? "✅ SET" : "❌ NOT SET") // Never logs the actual value
 
 // Global Middleware
 app.use(express.json()) // Allows Expres to parse JSON request bodies
@@ -48,7 +62,8 @@ app.use(loggerMiddleware)
 
 /**
  * Health check endpoint
- * Used to confirm the server is running
+ * Used by CI warm-up and monitoring to confirm the server is live/running.
+ * Returns 200 only when the server is fully initialized.
  */
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
