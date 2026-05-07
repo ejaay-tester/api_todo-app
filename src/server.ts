@@ -50,12 +50,12 @@ app.use(loggerMiddleware)
  * Health check endpoint
  * Used to confirm the server is running
  */
-app.get("/", (req: Request, res: Response) => {
+app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
     status: "OK",
     message: "Todo API is running",
     version: "1.0.0",
-    timestamp: new Date().toDateString(),
+    timestamp: new Date().toISOString(),
   })
 })
 
