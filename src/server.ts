@@ -97,6 +97,10 @@ app.use(errorHandler)
  */
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`✅ Server is running on http://localhost:${PORT}`)
+    const isProduction = process.env.NODE_ENV === "production"
+    const serverUrl = isProduction
+      ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}` // Render injects this automatically
+      : `http://localhost:${PORT}`
+    console.log(`✅ Server is running on ${serverUrl}`)
   })
 })
